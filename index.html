@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Group Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 20px;
+            font-size: 26px;
+        }
+        .upload-section {
+            margin-bottom: 20px;
+        }
+        .upload-box {
+            border: 2px dashed #1a73e8;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-box:hover {
+            background-color: #e8f0fe;
+        }
+        .upload-box input[type="file"] {
+            display: none;
+        }
+        .upload-box label {
+            color: #1a73e8;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #preview {
+            max-width: 100%;
+            margin-top: 15px;
+            display: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        #result {
+            color: #1a73e8;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        #goBackBtn {
+            display: none;
+            margin-top: 15px;
+            background-color: #666;
+        }
+        #goBackBtn:hover {
+            background-color: #444;
+        }
+        .spinner {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Blood Group Detection Using Fingerprint</h1>
+        
+        <div class="upload-section">
+            <div class="upload-box">
+                <input type="file" id="fingerprintInput" accept="image/*">
+                <label for="fingerprintInput">Click to Upload Fingerprint Image</label>
+                <img id="preview" alt="Fingerprint Preview">
+            </div>
+        </div>
+
+        <button id="detectBtn" onclick="detectBloodGroup()">Detect Blood Group</button>
+        <div class="spinner" id="spinner"></div>
+
+        <div class="result-section" id="resultSection">
+            <h3>Result:</h3>
+            <p id="result">Blood Group: Pending...</p>
+            <button id="goBackBtn" onclick="resetForm()">Go Back</button>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('fingerprintInput');
+        const preview = document.getElementById('preview');
+        const resultSection = document.getElementById('resultSection');
+        const result = document.getElementById('result');
+        const goBackBtn = document.getElementById('goBackBtn');
+        const detectBtn = document.getElementById('detectBtn');
+        const spinner = document.getElementById('spinner');
+
+        // Preview image on upload
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Detect blood group
+        async function detectBloodGroup() {
+            const file = input.files[0];
+            if (!file) {
+                result.textContent = 'Error: Please upload an image first';
+                resultSection.style.display = 'block';
+                goBackBtn.style.display = 'block';
+                return;
+            }
+
+            result.textContent = 'Processing...';
+            resultSection.style.display = 'block';
+            detectBtn.disabled = true;
+            spinner.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                console.log('Server response:', data);
+
+                if (data.blood_group) {
+                    result.textContent = `Blood Group: ${data.blood_group}`;
+                    goBackBtn.style.display = 'block';
+                } else if (data.error === 'Uploaded image is not a fingerprint') {
+                    result.textContent = 'Error: Please upload a valid fingerprint image';
+                    goBackBtn.style.display = 'block';
+                } else {
+                    result.textContent = `Error: ${data.error || 'Unable to predict blood group'}`;
+                    goBackBtn.style.display = 'block';
+                }
+            } catch (error) {
+                result.textContent = `Error: Network issue - ${error.message}`;
+                goBackBtn.style.display = 'block';
+                console.error('Fetch error:', error);
+            } finally {
+                detectBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            input.value = '';
+            preview.style.display = 'none';
+            resultSection.style.display = 'none';
+            goBackBtn.style.display = 'none';
+            result.textContent = 'Blood Group: Pending...';
+        }
+    </script>
+</body>
+</html>
