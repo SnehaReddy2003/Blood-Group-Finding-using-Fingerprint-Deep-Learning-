@@ -1,0 +1,2 @@
+# Blood-Group-Finding-using-Fingerprint-Deep-Learning-
+The Blood Group Finding project is an innovative biometric-based healthcare system that identifies a person’s blood group by analyzing fingerprint patterns. This uses Convolutional Neural Networks (CNNs) trained on fingerprint images corresponding to various blood groups (A+, B+, O+, AB+, etc.).This  achieves contactless blood group identification.
